@@ -1,32 +1,41 @@
 require 'pry'
 
-deck = [{hearts: 'ace'},     {hearts: 2},      {hearts: 3},        {hearts: 4},
-        {hearts: 5},       {hearts: 6},      {hearts: 7},        {hearts: 8},
-        {hearts: 9},       {hearts: 10},     {hearts: 'jack'},     {hearts: 'queen'},
+puts "What's your name?"
+
+player_name = gets.chomp
+
+def blackjack (player_name)
+
+deck = [{hearts: 'ace'},     {hearts: 2},      {hearts: 3},          {hearts: 4},
+        {hearts: 5},         {hearts: 6},      {hearts: 7},          {hearts: 8},
+        {hearts: 9},         {hearts: 10},     {hearts: 'jack'},     {hearts: 'queen'},
         {hearts: 'king'}, 
 
-        {clubs: 'ace'},      {clubs: 2},       {clubs: 3},         {clubs: 4}, 
-        {clubs: 5},        {clubs: 6},       {clubs: 7},         {clubs: 8}, 
-        {clubs: 9},        {clubs: 10},      {clubs: 'jack'},      {clubs: 'queen'}, 
+        {clubs: 'ace'},      {clubs: 2},       {clubs: 3},           {clubs: 4}, 
+        {clubs: 5},          {clubs: 6},       {clubs: 7},           {clubs: 8}, 
+        {clubs: 9},          {clubs: 10},      {clubs: 'jack'},      {clubs: 'queen'}, 
         {clubs: 'king'},
 
-        {diamonds: 'ace'},   {diamonds: 2},    {diamonds: 3},      {diamonds: 4},
-        {diamonds: 5},     {diamonds: 6},    {diamonds: 7},      {diamonds: 8},
-        {diamonds: 9},     {diamonds: 10},   {diamonds: 'jack'},   {diamonds: 'queen'},
+        {diamonds: 'ace'},   {diamonds: 2},    {diamonds: 3},        {diamonds: 4},
+        {diamonds: 5},       {diamonds: 6},    {diamonds: 7},        {diamonds: 8},
+        {diamonds: 9},       {diamonds: 10},   {diamonds: 'jack'},   {diamonds: 'queen'},
         {diamonds: 'king'},
 
-        {spades: 'ace'},     {spades: 2},      {spades: 3},        {spades: 4},
-        {spades: 5},       {spades: 6},      {spades: 7},        {spades: 8},
-        {spades: 9},       {spades: 10},     {spades: 'jack'},     {spades: 'queen'},
+        {spades: 'ace'},     {spades: 2},      {spades: 3},          {spades: 4},
+        {spades: 5},         {spades: 6},      {spades: 7},          {spades: 8},
+        {spades: 9},         {spades: 10},     {spades: 'jack'},     {spades: 'queen'},
         {spades: 'king'}]
 
 dealer_hand = []
 player_hand = []
+points = []
+player_total = 0
+dealer_total = 0
+
 
 def deal_card (hand, deck)
   hand << deck.shift
 end
-
 
 def initial_deal (hand, deck)
   2.times do
@@ -34,29 +43,7 @@ def initial_deal (hand, deck)
   end
 end
 
-puts "What's your name?"
-
-player_name = gets.chomp
-
-puts "Hi, #{player_name} let's play!"
-
-puts "The dealer is shuffling...."
-
-shuffled_deck = deck.shuffle
-
-puts
-
-puts "Dealing..."
-
-# deal to player
-initial_deal(player_hand, shuffled_deck)
-
-
-player_total = 0
-dealer_total = 0
-points = []
-
-# calculate player total
+# calculate total points
 def calculate_total (name, hand, points_array)
   total = 0
   puts "#{name}, you have: "
@@ -92,26 +79,16 @@ def calculate_total (name, hand, points_array)
   return total
 end
 
-player_total = calculate_total(player_name, player_hand, points)
-# deal to dealer
-
-initial_deal(dealer_hand, shuffled_deck)
-
-puts "dealer has "
-
-def show_dealer_card (dealer_hand)
-  dealer_hand.at(-1).each do |key, value|
-   puts "#{value} of #{key} showing"
+def show_dealer_cards (dealer_hand)
+  number_of_cards = dealer_hand.length
+  last_cards = dealer_hand.last(number_of_cards - 1)
+  last_cards.each do |card|
+    card.each do |key, value|
+      puts "Dealer has"
+      puts "#{value} of #{key} showing"
+    end
   end
 end
-
-show_dealer_card(dealer_hand)
-dealer_total = calculate_total('Dealer', dealer_hand, points)
-# after the player sees her hand and see's what the dealer has showing
-# it's time for the player to decide whether to hit or stay
-
-
-
 
 def ask_player_to_hit (player_name)
   puts "#{player_name} would you like to hit or stay?"
@@ -139,8 +116,10 @@ def decide_whether_to_hit (player_name, player_hand, dealer_hand, points, shuffl
     player_total = calculate_total(player_name, player_hand, points)
     dealer_total = calculate_total('dealer', dealer_hand, points)
     while dealer_total < 17
+      puts 'Dealer hits'
       deal_card(dealer_hand, shuffled_deck)
       dealer_total = calculate_total('dealer', dealer_hand, points)
+      show_dealer_cards(dealer_hand)
     end
     if dealer_total == 21
       puts "Sorry #{player_name} you have #{player_total} and the dealer has #{dealer_total}. You lose." 
@@ -167,6 +146,30 @@ end
 
 
 
+puts "Hi, #{player_name} let's play!"
+
+puts "The dealer is shuffling...."
+
+shuffled_deck = deck.shuffle
+
+puts
+
+puts "Dealing..."
+
+# deal to player
+initial_deal(player_hand, shuffled_deck)
+
+player_total = calculate_total(player_name, player_hand, points)
+
+# deal to dealer
+initial_deal(dealer_hand, shuffled_deck)
+
+show_dealer_cards(dealer_hand)
+
+dealer_total = calculate_total('Dealer', dealer_hand, points)
+# after the player sees her hand and see's what the dealer has showing
+# it's time for the player to decide whether to hit or stay
+
 if player_total == 21
   if dealer_total == 21
     puts "Good news is you have 21! Bad news is that the dealer also has 21 
@@ -180,5 +183,30 @@ else
   decide_whether_to_hit(player_name, player_hand, dealer_hand, points, shuffled_deck)
 end
 
+puts
+
+def ask_to_play_another_game (player_name)
+  puts "#{player_name} would you like to play again? Please enter 'yes' or 'no'"
+  another_game_answer = gets.chomp
+  if another_game_answer.downcase == 'yes'
+    return true
+  elsif another_game_answer.downcase == 'no'
+    puts "Thanks for playing #{player_name}, lets do it again sometime!"
+    return false
+  else
+    ask_to_play_another_game(player_name)
+  end
+end
+
+play_another_game = ask_to_play_another_game(player_name)
 
 
+if play_another_game == true
+  blackjack(player_name)
+else
+  return
+end
+  
+end
+
+blackjack(player_name)
