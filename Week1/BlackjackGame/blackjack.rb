@@ -46,11 +46,8 @@ end
 # calculate total points
 def calculate_total (name, hand, points_array)
   total = 0
-  puts "#{name}, you have: "
-
   hand.each do |i| 
     i.each do |key, value| # for each hash in the array
-      puts "#{value} of #{key}"
       if value.is_a?(Fixnum)
         points_array << value
       elsif value.is_a?(String)
@@ -74,9 +71,24 @@ def calculate_total (name, hand, points_array)
   #puts points_array
   points_array.each { |e| total += e }
   points_array.clear
-  puts "#{name}'s total is:"
-  puts total
   return total
+end
+
+def tell_player_their_cards (player_name, hand)
+  puts "#{player_name}, you have: "
+  puts
+  hand.each do |i|
+    i.each do |key, value|
+      puts "#{value} of #{key}"
+    end
+  end 
+end
+
+def tell_player_total (player_total) 
+  puts
+  puts "Your total is:"
+  puts player_total
+  puts
 end
 
 def show_dealer_cards (dealer_hand)
@@ -86,6 +98,15 @@ def show_dealer_cards (dealer_hand)
     card.each do |key, value|
       puts "Dealer has"
       puts "#{value} of #{key} showing"
+      puts
+    end
+  end
+end
+
+def flip_dealer_card (dealer_hand)
+  dealer_hand.each do |i|
+    i.each do |key, value|
+      puts "#{value} of #{key}"
     end
   end
 end
@@ -96,44 +117,75 @@ def ask_player_to_hit (player_name)
 end
 
 def decide_whether_to_hit (player_name, player_hand, dealer_hand, points, shuffled_deck)
+  dealer_total = calculate_total('dealer', dealer_hand, points)
   player_answer = ask_player_to_hit(player_name)
   if player_answer.downcase == 'hit'
     # deal the player another card
     deal_card(player_hand, shuffled_deck)
+
+    tell_player_their_cards(player_name, player_hand)
+
     player_total = calculate_total(player_name, player_hand, points)
+
+    tell_player_total(player_total)
+
     if player_total == 21
-      puts "#{player_name} wins!"
+      puts "You got #{player_total}! #{player_name} wins!"
+      puts "The dealer had:"
+      flip_dealer_card(dealer_hand)
+      puts "For #{dealer_total}"
       return
     elsif player_total < 21
       decide_whether_to_hit(player_name, player_hand, dealer_hand, points, shuffled_deck)
     else
-      puts "Sorry #{player_name} you busted! Game over."
+      puts "Sorry #{player_name} you busted!"
+      puts "The dealer had:"
+      flip_dealer_card(dealer_hand)
+      puts "For #{dealer_total}"
+      puts
+      puts "Game over."
       return
     end
   
   elsif player_answer.downcase == 'stay'
     # dealer's turn
     player_total = calculate_total(player_name, player_hand, points)
-    dealer_total = calculate_total('dealer', dealer_hand, points)
     while dealer_total < 17
+      puts
       puts 'Dealer hits'
+      puts
       deal_card(dealer_hand, shuffled_deck)
       dealer_total = calculate_total('dealer', dealer_hand, points)
       show_dealer_cards(dealer_hand)
     end
     if dealer_total == 21
+      puts "Dealer flips card:"
+      flip_dealer_card(dealer_hand)
+      puts
       puts "Sorry #{player_name} you have #{player_total} and the dealer has #{dealer_total}. You lose." 
       return
     elsif dealer_total > 21
-      puts "Congratulations #{player_name}! The dealer busted. You have #{player_total} - you win!"
+      puts "Dealer flips card:"
+      flip_dealer_card(dealer_hand)
+      puts
+      puts "Congratulations #{player_name}! The dealer busted with #{dealer_total}. You have #{player_total} - you win!"
       return 
     elsif dealer_total < player_total
+      puts "Dealer flips card:"
+      flip_dealer_card(dealer_hand)
+      puts
       puts "Congratulations #{player_name} you have #{player_total} and the dealer has #{dealer_total} - you win!!!"
       return
     elsif dealer_total > player_total
+      puts "Dealer flips card:"
+      flip_dealer_card(dealer_hand)
+      puts
       puts "Sorry #{player_name} you have #{player_total} and the dealer has #{dealer_total} - you lose"
       return
     elsif dealer_total == player_total
+      puts "Dealer flips card:"
+      flip_dealer_card(dealer_hand)
+      puts
       puts "Sorry #{player_name}, you have #{player_total} and the dealer has #{dealer_total} - the game is a draw."
       return
     end
@@ -144,9 +196,11 @@ def decide_whether_to_hit (player_name, player_hand, dealer_hand, points, shuffl
   end 
 end
 
-
+puts
 
 puts "Hi, #{player_name} let's play!"
+
+puts
 
 puts "The dealer is shuffling...."
 
@@ -156,10 +210,16 @@ puts
 
 puts "Dealing..."
 
+puts
+
 # deal to player
 initial_deal(player_hand, shuffled_deck)
 
+tell_player_their_cards(player_name, player_hand)
+
 player_total = calculate_total(player_name, player_hand, points)
+
+tell_player_total(player_total)
 
 # deal to dealer
 initial_deal(dealer_hand, shuffled_deck)
@@ -172,13 +232,24 @@ dealer_total = calculate_total('Dealer', dealer_hand, points)
 
 if player_total == 21
   if dealer_total == 21
-    puts "Good news is you have 21! Bad news is that the dealer also has 21 
+    puts "Good news is you have #{player_total}!"
+    puts
+    puts "Dealer flips card:"
+    flip_dealer_card(dealer_hand)
+    puts
+    puts "Bad news is that the dealer also has #{dealer_total} 
           so nobody wins.  You should play again."
   else
-    puts "You've got 21! You win!"
+    puts "You've got #{player_total}! You win!"
+    puts "The dealer had:"
+    flip_dealer_card(dealer_hand)
+    puts "For #{dealer_total}"
   end
 elsif dealer_total == 21
-  puts "Sorry but you have #{player_total} and the dealer has 21, you lose."
+  puts "Dealer flips card:"
+  flip_dealer_card(dealer_hand)
+  puts
+  puts "Sorry but you have #{player_total} and the dealer has #{dealer_total}, you lose."
 else
   decide_whether_to_hit(player_name, player_hand, dealer_hand, points, shuffled_deck)
 end
