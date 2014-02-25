@@ -11,6 +11,10 @@ class Card
   def show
     "#{value} of #{suit}"
   end
+
+  def to_s
+    show
+  end
 end
 
 
@@ -39,65 +43,67 @@ class Deck
 
 end
 
-class Hand
-  attr_accessor :cards
-
-  def initialize
-    @cards = []
-  end
+module Hand
 
   def get_total
     total = 0
-    @cards.each do |card|
+    cards.each do |card|
       if card.value == 'Ace'
-        if total < 11
-          total += 11
-        else
-          total += 1
-        end
-      elsif card.value.to_i == 0
-        total += 10
+        total < 11 ? total += 11 : total += 1
       else
-        total += card.value.to_i
+        total += (card.value.to_i == 0 ? 10 : card.value.to_i)
       end
     end
     total
   end
 
+  def is_busted?
+    get_total > Blackjack::BLACKJACK_AMOUNT
+  end
+
   def show_cards
-    @cards.each do |card|
-      puts card.show
+    cards.each do |card|
+      puts card
     end
   end
 
-  def show_flipped_cards
-    number_of_cards = @cards.length
-    last_cards = @cards.last(number_of_cards - 1) 
-    last_cards.each do |card|
-      puts card.show
-    end
+  def add_card(new_card)
+    cards << new_card
   end
 
 end
 
 
 class Player
-  attr_accessor :hand, :name
+  include Hand
+
+  attr_accessor :cards, :name
 
   def initialize(name="Player")
     @name = name
-    @hand = Hand.new
+    @cards = []
   end
 end
 
 
 class Dealer
-  attr_accessor :hand
+  include Hand
+
+  attr_accessor :cards
 
   def initialize
-    @hand = Hand.new
+    @cards = []
   end
 
+  def show_flop
+    puts
+    puts "Dealer has showing:"
+    number_of_cards = @cards.length
+    last_cards = @cards.last(number_of_cards - 1) 
+    last_cards.each do |card|
+      puts card.show
+    end
+  end
 end
 
 
@@ -105,16 +111,15 @@ class Blackjack
   @@dealer_score = 0
   @@player_score = 0
 
-  WINNING_NUMBER = 21
+  BLACKJACK_AMOUNT = 21
+  DEALER_HIT_MIN = 17
 
   attr_accessor :player, :dealer, :deck
 
   def initialize
     @dealer = Dealer.new
-    @dealer_hand = @dealer.hand
     @deck = Deck.new
     @player = Player.new
-    @player_hand = @player.hand
   end
 
   def get_player_name
@@ -125,99 +130,95 @@ class Blackjack
 
   def initial_deal
     puts
-    puts "Dealing your cards, #{@player.name}."
+    puts "Dealing your cards, #{player.name}."
     2.times do
-      @player_hand.cards << @deck.deal
+      player.add_card( deck.deal )
     end
 
     puts
     puts "Dealing dealer cards."
     2.times do
-      @dealer_hand.cards << @deck.deal
+      dealer.add_card( deck.deal )
     end
   end
 
   def player_looks_at_cards
     puts
     puts "#{@player.name} you have: "
-    @player_hand.show_cards
-    puts "For a total of #{@player_hand.get_total}"
-  end
-
-  def show_player_what_dealer_has_showing
-    puts
-    puts "The dealer has showing: "
-    @dealer_hand.show_flipped_cards
+    player.show_cards
+    puts "For a total of #{player.get_total}"
   end
 
   def dealer_shows_cards
     puts
-    puts "Dealer flips card:"
-    @dealer_hand.show_cards
+    puts "Dealer flips card and shows:"
+    dealer.show_cards
+    puts
+    puts "For #{dealer.get_total}"
+  end
+
+  def blackjack_or_bust (player_or_dealer)
+    if player_or_dealer.get_total == BLACKJACK_AMOUNT
+      if player_or_dealer.is_a?(Dealer)
+        dealer_shows_cards
+        puts "Sorry, the dealer hit blackjack. #{player.name}, you lose."
+        @@dealer_score = @@dealer_score + 1
+        play_again?
+      else
+        puts "Congratulations, #{player.name} you got #{BLACKJACK_AMOUNT} - you win! "
+        dealer_shows_cards
+        @@player_score = @@player_score + 1
+        play_again?
+      end
+    elsif player_or_dealer.is_busted?
+      if player_or_dealer.is_a?(Dealer)
+        dealer_shows_cards
+        puts "Congratulations, the dealer busted with #{dealer.get_total} - "\
+             "#{player.name} your total is #{player.get_total} you win!"
+        @@player_score = @@player_score + 1
+        play_again?
+      else 
+        puts "Sorry, #{player.name}, you busted with #{player.get_total} - you lose."
+        dealer_shows_cards
+        @@dealer_score = @@dealer_score + 1
+        play_again?
+      end
+    end
   end
 
   def check_for_21
-    if @player_hand.get_total == WINNING_NUMBER
-      if @dealer_hand == WINNING_NUMBER
+    if player.get_total == BLACKJACK_AMOUNT
+      if dealer.get_total == BLACKJACK_AMOUNT
         puts
-        puts "Good news is you have #{@player_hand.get_total}!"
+        puts "Good news is you have #{player.get_total}!"
+        puts "Bad news is the dealer also has: "
         dealer_shows_cards
-        puts
-        puts "Bad news is the dealer also has #{@dealer_hand.get_total} "\
-             "so nobody wins.  You should play again."
-        return true
+        puts "So nobody wins.  You should play again."
+        play_again?
       else
         puts
-        puts "You've got #{@player_hand.get_total}! You win!!!"
+        puts "You've got #{player.get_total}! You win!!!"
         dealer_shows_cards
-        puts
-        puts "For #{@dealer_hand.get_total}"
         @@player_score = @@player_score + 1
-        return true
+        play_again?
       end
-    elsif @dealer_hand.get_total == WINNING_NUMBER
-      puts
-      puts "Dealer flips card and shows:"
-      @dealer_hand.show_cards
-      puts
-      puts "Sorry but you have #{@player_hand.get_total} and the dealer has "\
-           "#{@dealer_hand.get_total}, you lose."
-      @@dealer_score = @@dealer_score + 1
-      return true
+    else
+      blackjack_or_bust( dealer )
     end
   end
 
   def player_turn
-    while @player_hand.get_total < WINNING_NUMBER
+    while player.get_total < BLACKJACK_AMOUNT
       puts
-      puts "#{@player.name} would you like to hit or stay?"
+      puts "#{player.name} would you like to hit or stay?"
       answer = gets.chomp
 
       if answer.downcase == 'hit'
         puts
         puts "Dealing...."
-        @player_hand.cards << @deck.deal
+        player.add_card( deck.deal )
         player_looks_at_cards
-
-        if @player_hand.get_total == WINNING_NUMBER
-          puts
-          puts "You got #{@player_hand.get_total}! #{@player.name} wins!!!"
-          dealer_shows_cards
-          puts
-          puts "For #{@dealer_hand.get_total}"
-          @@player_score = @@player_score + 1
-          return true
-        elsif @player_hand.get_total > WINNING_NUMBER
-          puts
-          puts "Sorry #{@player.name} you busted!"
-          dealer_shows_cards
-          puts
-          puts "For #{@dealer_hand.get_total}"
-          puts
-          puts "Game over."
-          @@dealer_score = @@dealer_score + 1
-          return true
-        end
+        blackjack_or_bust( player )
       elsif answer.downcase == 'stay'
         return 
       else
@@ -227,85 +228,68 @@ class Blackjack
   end
 
   def dealer_turn
-    while @dealer_hand.get_total < 17
+    while dealer.get_total < DEALER_HIT_MIN
       puts
       puts 'Dealer hits'
-      @dealer_hand.cards << @deck.deal
-      show_player_what_dealer_has_showing
-
-      if @dealer_hand.get_total == WINNING_NUMBER
-        dealer_shows_cards
-        puts
-        puts "Sorry #{@player.name}, you have #{@player_hand.get_total} and "\
-             "the dealer has #{@dealer_hand.get_total}.  You lose."
-        @@dealer_score = @@dealer_score + 1
-        return true
-      elsif @dealer_hand.get_total > WINNING_NUMBER
-        dealer_shows_cards
-        puts
-        puts "Congratulations #{@player.name}, the dealer busted with #{@dealer_hand.get_total} "\
-             "and you have #{@player_hand.get_total} - you win!!!"
-        @@player_score = @@player_score + 1
-        return true
-      end
+      puts
+      puts "Dealing card to dealer: "
+      dealer.add_card( deck.deal )
+      dealer.show_flop
+      blackjack_or_bust( dealer )
     end
   end
 
   def compare_hands
-    if @dealer_hand.get_total < @player_hand.get_total
+    if dealer.get_total < player.get_total
       dealer_shows_cards
       puts
-      puts "Congratulations #{@player.name} you have #{@player_hand.get_total} "\
-           "and the dealer has #{@dealer_hand.get_total} - you win!!!"
+      puts "Congratulations #{player.name} you have #{player.get_total} "\
+           "and the dealer has #{dealer.get_total} - you win!!!"
       @@player_score = @@player_score + 1
-      return true
-    elsif @dealer_hand.get_total > @player_hand.get_total
+      play_again?
+    elsif dealer.get_total > player.get_total
       dealer_shows_cards
       puts
-      puts "Sorry #{@player.name} you have #{@player_hand.get_total} and the "\
-           "dealer has #{@dealer_hand.get_total} - you lose."
+      puts "Sorry #{player.name} you have #{player.get_total} and the "\
+           "dealer has #{dealer.get_total} - you lose."
       @@dealer_score = @@dealer_score + 1
-      return true
-    elsif @dealer_hand.get_total == @player_hand.get_total
+      play_again?
+    elsif dealer.get_total == player.get_total
       dealer_shows_cards
       puts
-      puts "Sorry #{@player.name}, you have #{@player_hand.get_total} and the "\
-           "dealer has #{@dealer_hand.get_total} - the game is a draw."
-      return true
+      puts "Sorry #{player.name}, you have #{player.get_total} and the "\
+           "dealer has #{dealer.get_total} - the game is a draw."
+      play_again?
     end
   end
 
   def play_again?
     puts
-    puts "The score is #{@player.name}: #{@@player_score}, dealer: #{@@dealer_score}"
-    puts "#{@player.name} would you like to play again? "\
+    puts "The score is #{player.name}: #{@@player_score}, dealer: #{@@dealer_score}"
+    puts "#{player.name} would you like to play again? "\
          "Please enter 'yes' or 'no'"
     another_game = gets.chomp
     if another_game.downcase == 'yes'
-      return true
+      new_game = Blackjack.new
+      new_game.player.name = player.name
+      new_game.play 
     elsif another_game.downcase == 'no'
-      puts "Thanks for playing #{@player.name}, let's do it again some time!"
-      return false
+      puts "Thanks for playing #{player.name}, let's do it again some time!"
+      exit
     else
       play_again?
     end
   end
 
+
   def play
-    while true
-      initial_deal
-      player_looks_at_cards
-      show_player_what_dealer_has_showing
-      if check_for_21 == true then break end
-      if player_turn == true then break end
-      if dealer_turn == true then break end
-      if compare_hands == true then break end
-    end
-    if play_again? == true
-      new_game = Blackjack.new
-      new_game.player.name = @player.name
-      new_game.play 
-    end
+    initial_deal
+    player_looks_at_cards
+    dealer.show_flop
+    check_for_21
+    player_turn
+    dealer_turn
+    compare_hands
   end
 
   def run
