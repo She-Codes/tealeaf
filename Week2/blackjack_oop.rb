@@ -144,7 +144,7 @@ class Blackjack
 
   def player_looks_at_cards
     puts
-    puts "#{@player.name} you have: "
+    puts "#{player.name} you have: "
     player.show_cards
     puts "For a total of #{player.get_total}"
   end
